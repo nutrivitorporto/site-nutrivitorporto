@@ -1,0 +1,2 @@
+User-agent: *
+Allow: /Site nutrivitorporto.com
