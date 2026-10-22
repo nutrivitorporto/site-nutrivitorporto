@@ -1,1 +1,23 @@
-{"routes":[{"src":"/","dest":"/atualizacao-resultados/index.html"},{"src":"/index.html","dest":"/atualizacao-resultados/index.html"},{"src":"/resultados/(.*)","dest":"/atualizacao-resultados/resultados/$1"}]}
+{
+  "routes": [
+    {
+      "src": "/capas/(.*)",
+      "headers": {
+        "Access-Control-Allow-Origin": "*"
+      },
+      "continue": true
+    },
+    {
+      "src": "/",
+      "dest": "/atualizacao-resultados/index.html"
+    },
+    {
+      "src": "/index.html",
+      "dest": "/atualizacao-resultados/index.html"
+    },
+    {
+      "src": "/resultados/(.*)",
+      "dest": "/atualizacao-resultados/resultados/$1"
+    }
+  ]
+}
