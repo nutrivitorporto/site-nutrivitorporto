@@ -1,2 +1,4 @@
 User-agent: *
-Allow: /Site nutrivitorporto.com
+Allow: /
+
+Sitemap: https://nutrivitorporto.com/sitemap.xml
