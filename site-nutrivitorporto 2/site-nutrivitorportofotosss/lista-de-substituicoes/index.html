@@ -28,7 +28,7 @@ header{padding-block:22px 26px}
 .eyebrow{margin:0 0 6px;font-size:11px;font-weight:500;letter-spacing:.22em;text-transform:uppercase}
 h1{margin:0;font-size:clamp(28px,9.2vw,60px);font-weight:900;line-height:.95;text-transform:uppercase;}h1 span{background:linear-gradient(transparent 58%,var(--gold) 58%);-webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 .08em}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
-label.l{display:block;margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.l{display:block;margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
 .field{position:relative}
 input[type=text],input[type=search],input[type=number]{width:100%;height:52px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:500 16px var(--display)}
 input:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
@@ -97,8 +97,12 @@ footer a{color:var(--gold-text)}
   </div>
   <div class="field" style="margin-top:14px">
     <label class="l" for="q2">3. Alimento que deseja consumir <span class="opt">(opcional)</span></label>
-    <input id="q2" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Deixe em branco para ver todas as trocas" role="combobox" aria-expanded="false" aria-controls="sug2" aria-autocomplete="list">
+    <input id="q2" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Deixe em branco para ver todas" role="combobox" aria-expanded="false" aria-controls="sug2" aria-autocomplete="list">
     <ul class="sug" id="sug2" role="listbox" hidden></ul>
+  </div>
+  <div style="margin-top:14px">
+    <p class="l" id="l4" style="margin:0 0 6px">4. Trocar igualando</p>
+    <div class="chips" id="crit" role="group" aria-labelledby="l4" style="margin-top:0"></div>
   </div>
 </section>
 
@@ -121,7 +125,12 @@ const foods=DATA.foods.map((f,i)=>({...f,i,label:f.f?f.b+' · '+f.f:f.b,s:norm(f
 const fmt=(n,d=0)=>Number(n).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
 const catOf=f=>{const x=norm(f.f);if(/^cozid|^pre-cozid/.test(x))return'Cozido';if(/^cru|^crua|fresco, cru/.test(x))return'Cru';if(/^assad/.test(x))return'Assado';if(/^grelhad/.test(x))return'Grelhado';if(/^frit/.test(x))return'Frito';if(/^refogad/.test(x))return'Refogado';return'Outros'};
 const ORDER=['Cozido','Cru','Assado','Grelhado','Frito','Refogado','Outros'];
-let sel=null,tgt=null,filt='Todos',hi=-1,shown=[],shown2=[];
+let sel=null,tgt=null,filt='Todos',hi=-1,shown=[],shown2=[],crit='auto';
+
+const CRIT=[['auto','Automático'],['k','Calorias'],['c','Carboidratos'],['p','Proteínas'],['l','Gorduras']];
+function drawCrit(){$('#crit').innerHTML=CRIT.map(([v,t])=>`<button type="button" class="chip" data-k="${v}" aria-pressed="${v===crit}">${t}</button>`).join('')}
+drawCrit();
+$('#crit').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(b){crit=b.dataset.k;drawCrit();render()}});
 
 function round(g){return g>=100?Math.round(g/5)*5:g>=20?Math.round(g):Math.round(g*2)/2}
 function gtxt(g){const r=round(g);return fmt(r,r%1?1:0)}
@@ -153,18 +162,19 @@ function render(){
   if(!sel){R.innerHTML='';return}
   const grams=parseFloat(String($('#gr').value).replace(',','.'));
   if(!(grams>0)){R.innerHTML='<div class="card empty">Digite a quantidade em gramas.</div>';return}
-  const grp=DATA.groups[sel.g],key=grp.key;
+  const grp=DATA.groups[sel.g],key=crit==='auto'?grp.key:crit;
   const base=sel[key]*grams/100;
   const head=`<div class="card ref"><p class="t">Você escolheu</p><p class="n">${gtxt(grams)} g de ${sel.label}${sel.r?'<span class="tag">ref.</span>':''}</p>
   <div class="macros"><span>Calorias <b>${fmt(sel.k*grams/100)} kcal</b></span><span class="${key==='c'?'key':''}">Carboidratos <b>${fmt(sel.c*grams/100,1)} g</b></span><span class="${key==='p'?'key':''}">Proteínas <b>${fmt(sel.p*grams/100,1)} g</b></span><span class="${key==='l'?'key':''}">Gorduras <b>${fmt(sel.l*grams/100,1)} g</b></span></div></div>`;
-  if(!(base>0)){R.innerHTML=head+'<div class="card empty" style="margin-top:12px">Este alimento não tem o nutriente de referência do grupo.</div>';return}
+  if(!(base>0)){R.innerHTML=head+'<div class="card empty" style="margin-top:12px">Este alimento não tem '+NUT[key]+' para igualar. Escolha outra opção no passo 4.</div>';return}
   const alts=foods.filter(f=>f.g===sel.g&&f.i!==sel.i&&f[key]>0).map(f=>({f,g:base/f[key]*100})).filter(x=>x.g<=2000);
   if(tgt&&tgt.g===sel.g){
+    if(!(tgt[key]>0)){R.innerHTML=head+'<div class="card empty" style="margin-top:12px">'+tgt.label+' não tem '+NUT[key]+' para igualar. Escolha outra opção no passo 4.</div>';return}
     const gt=base/tgt[key]*100;
     const mk=(f,g)=>`<div class="macros"><span>Calorias <b>${fmt(f.k*g/100)} kcal</b></span><span class="${key==='c'?'key':''}">Carboidratos <b>${fmt(f.c*g/100,1)} g</b></span><span class="${key==='p'?'key':''}">Proteínas <b>${fmt(f.p*g/100,1)} g</b></span><span class="${key==='l'?'key':''}">Gorduras <b>${fmt(f.l*g/100,1)} g</b></span></div>`;
     const oth=foods.filter(f=>f.b===tgt.b&&f.i!==tgt.i&&f.i!==sel.i&&f[key]>0).map(f=>({f,g:base/f[key]*100}));
-    const othHtml=oth.length?`<div class="card alt"><h3>${tgt.b} em outro preparo</h3><ul>${oth.map(x=>`<li><span class="fm">${x.f.f||'pronto'}<small>${fmt(x.f.k*x.g/100)} kcal · ${NUTL[key]} ${fmt(x.f[key]*x.g/100,1)} g</small></span><span class="g">${gtxt(x.g)}<small> g</small></span></li>`).join('')}</ul></div>`:'';
-    R.innerHTML=head+`<p class="rule">Troca igualando <b>${grp.nut}</b> (${fmt(base,1)} g${key==='k'?' kcal':''}).</p><div class="card ref"><p class="t">Você pode comer</p><p class="n">${gtxt(gt)} g de ${tgt.label}${tgt.r?'<span class="tag">ref.</span>':''}</p>${mk(tgt,gt)}</div>`+othHtml+`<button type="button" class="copy" id="all" style="margin-top:14px">Ver todas as trocas</button>`;
+    const othHtml=oth.length?`<div class="card alt"><h3>${tgt.b} em outro preparo</h3><ul>${oth.map(x=>`<li><span class="fm">${x.f.f||'pronto'}<small>${fmt(x.f.k*x.g/100)} kcal${key==='k'?'':' · '+NUTL[key]+' '+fmt(x.f[key]*x.g/100,1)+' g'}</small></span><span class="g">${gtxt(x.g)}<small> g</small></span></li>`).join('')}</ul></div>`:'';
+    R.innerHTML=head+`<p class="rule">Troca igualando <b>${NUT[key]}</b> (${fmt(base,key==='k'?0:1)} ${key==='k'?'kcal':'g'}).</p><div class="card ref"><p class="t">Você pode comer</p><p class="n">${gtxt(gt)} g de ${tgt.label}${tgt.r?'<span class="tag">ref.</span>':''}</p>${mk(tgt,gt)}</div>`+othHtml+`<button type="button" class="copy" id="all" style="margin-top:14px">Ver todas as trocas</button>`;
     return}
   const cats=ORDER.filter(c=>alts.some(x=>catOf(x.f)===c));
   const bar=cats.length>1?`<div class="chips" role="group" aria-label="Filtrar por preparo">${['Todos',...cats].map(c=>`<button type="button" class="chip" data-c="${c}" aria-pressed="${c===filt}">${c}</button>`).join('')}</div>`:'';
@@ -174,10 +184,10 @@ function render(){
   const same=[...byBase.keys()].sort((a,b)=>(b===sel.b)-(a===sel.b));
   const cards=same.map(b=>{
     const rows=byBase.get(b).sort((a,c)=>ORDER.indexOf(catOf(a.f))-ORDER.indexOf(catOf(c.f)));
-    return `<div class="card alt"><h3>${b}${b===sel.b?'<span class="tag">mesmo alimento</span>':''}${rows[0].f.r?'<span class="tag">ref.</span>':''}</h3><ul>${rows.map(x=>`<li><span class="fm">${x.f.f||'pronto'}<small>${fmt(x.f.k*x.g/100)} kcal · ${NUTL[key]} ${fmt(x.f[key]*x.g/100,1)} g</small></span><span class="g">${gtxt(x.g)}<small> g</small></span></li>`).join('')}</ul></div>`}).join('');
-  R.innerHTML=head+`<p class="rule">Trocas dentro de <b>${grp.nome}</b>, igualando <b>${grp.nut}</b> (${fmt(base,1)} g${key==='k'?' kcal':''}).</p>
+    return `<div class="card alt"><h3>${b}${b===sel.b?'<span class="tag">mesmo alimento</span>':''}${rows[0].f.r?'<span class="tag">ref.</span>':''}</h3><ul>${rows.map(x=>`<li><span class="fm">${x.f.f||'pronto'}<small>${fmt(x.f.k*x.g/100)} kcal${key==='k'?'':' · '+NUTL[key]+' '+fmt(x.f[key]*x.g/100,1)+' g'}</small></span><span class="g">${gtxt(x.g)}<small> g</small></span></li>`).join('')}</ul></div>`}).join('');
+  R.innerHTML=head+`<p class="rule">Trocas dentro de <b>${grp.nome}</b>, igualando <b>${NUT[key]}</b> (${fmt(base,key==='k'?0:1)} ${key==='k'?'kcal':'g'}).</p>
   <div class="tools"><span class="sr">Resultados</span>${bar?'':'<span></span>'}<button type="button" class="copy" id="copy">Copiar lista</button></div>${bar}${cards||'<div class="card empty">Nenhuma troca neste filtro.</div>'}`;
-  window._txt=()=>`Trocas para ${gtxt(grams)} g de ${sel.label} (${grp.nut}):\n`+list.map(x=>`• ${x.f.b}${x.f.f?' '+x.f.f:''}: ${gtxt(x.g)} g`).join('\n')+'\n\nnutrivitorporto.com/lista-de-substituicoes';
+  window._txt=()=>`Trocas para ${gtxt(grams)} g de ${sel.label} (${NUT[key]}):\n`+list.map(x=>`• ${x.f.b}${x.f.f?' '+x.f.f:''}: ${gtxt(x.g)} g`).join('\n')+'\n\nnutrivitorporto.com/lista-de-substituicoes';
 }
 
 $('#q').addEventListener('input',()=>{sel=null;$('#res').innerHTML='';suggest()});
