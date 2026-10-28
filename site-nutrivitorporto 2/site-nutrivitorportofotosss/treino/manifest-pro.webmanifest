@@ -5,10 +5,10 @@
  "display": "standalone",
  "background_color": "#0D0E10",
  "theme_color": "#0D0E10",
- "id": "/treino/?adm",
+ "id": "/treino/adm.html",
  "name": "Treino ADM",
  "short_name": "Treino ADM",
- "start_url": "/treino/#pro",
+ "start_url": "/treino/adm.html",
  "icons": [
   {
    "src": "/treino/icon-pro-192.png",
