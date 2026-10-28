@@ -1,5 +1,5 @@
 // Treino #teamporto: guarda o app no celular para abrir rápido e funcionar sem internet.
-var V = "tp-92744fd3a7";
+var V = "tp-e4c4ba7f4b";
 var PAGE = "/treino/";
 self.addEventListener("install", function (e) {
   self.skipWaiting();
