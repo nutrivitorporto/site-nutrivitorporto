@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+
+# Dependências e ferramentas
+node_modules/
+.vercel/
+.firebase/
+
+# Logs
+*.log
+firebase-debug.log
+
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example
+
+# Editores
+.vscode/
+.idea/
